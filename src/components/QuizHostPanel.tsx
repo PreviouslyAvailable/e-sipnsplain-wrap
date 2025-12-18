@@ -175,7 +175,7 @@ export default function QuizHostPanel() {
           {(() => {
             const activeQuestion = questions.find((q) => q.id === room.active_question_id);
             return activeQuestion ? (
-              <LiveResultsChart roomId={room.id} question={activeQuestion} />
+              <LiveResultsChart question={activeQuestion} />
             ) : null;
           })()}
         </div>
