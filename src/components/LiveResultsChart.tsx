@@ -1,0 +1,354 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { getResponses, subscribeToResponses, type Question, type ResponseRow } from '@/lib/quiz';
+import { getColorForSession } from '@/lib/colors';
+
+type LiveResultsChartProps = {
+  question: Question | null;
+};
+
+type McqData = {
+  option: string;
+  count: number;
+};
+
+type ScaleData = {
+  range: string;
+  count: number;
+};
+
+export default function LiveResultsChart({ question }: LiveResultsChartProps) {
+  const [responses, setResponses] = useState<ResponseRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load initial responses and subscribe to updates
+  useEffect(() => {
+    if (!question) {
+      setResponses([]);
+      setLoading(false);
+      return;
+    }
+
+    let unsubscribe: (() => void) | null = null;
+
+    const loadAndSubscribe = async () => {
+      try {
+        setLoading(true);
+        
+        // Load existing responses
+        const { data: initialResponses, error } = await getResponses(question.id);
+        
+        if (error) {
+          console.error('Error loading responses:', error);
+        } else {
+          console.log('LiveResultsChart: Loaded initial responses:', initialResponses);
+          // getResponses maps 'answer' to 'value', so this should be ResponseRow[]
+          setResponses((initialResponses || []) as unknown as ResponseRow[]);
+        }
+
+        // Subscribe to new responses
+        unsubscribe = subscribeToResponses(question.id, (newResponse) => {
+          console.log('LiveResultsChart: New response received in subscription:', newResponse);
+          setResponses((prev) => {
+            // Avoid duplicates
+            if (prev.some((r) => r.id === newResponse.id)) {
+              console.log('LiveResultsChart: Duplicate response, skipping');
+              return prev;
+            }
+            console.log('LiveResultsChart: Adding new response, total:', prev.length + 1);
+            return [...prev, newResponse];
+          });
+        });
+      } catch (err) {
+        console.error('Error setting up responses:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAndSubscribe();
+
+    // Fallback: Poll for new responses every 2 seconds in case subscription fails
+    const pollInterval = setInterval(async () => {
+      if (question) {
+        const { data: currentResponses, error } = await getResponses(question.id);
+        if (!error && currentResponses) {
+          setResponses((prev) => {
+            // Only update if we have new responses
+            if (currentResponses.length !== prev.length) {
+              console.log('LiveResultsChart: Polling found new responses, updating');
+              // getResponses maps 'answer' to 'value', so this should be ResponseRow[]
+              return currentResponses as unknown as ResponseRow[];
+            }
+            return prev;
+          });
+        }
+      }
+    }, 2000);
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+      clearInterval(pollInterval);
+    };
+  }, [question?.id]);
+
+  if (!question) {
+    return (
+      <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+        <p className="text-gray-500 dark:text-gray-400">No reflection open</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+        <p className="text-gray-500 dark:text-gray-400">The room is responding...</p>
+      </div>
+    );
+  }
+
+  const responseCount = responses.length;
+
+  // Process data based on question type
+  if (question.type === 'mcq' && Array.isArray(question.options)) {
+    // Count responses for each option
+    const optionCounts: Record<string, number> = {};
+    question.options.forEach((option) => {
+      optionCounts[option] = 0;
+    });
+
+    responses.forEach((response) => {
+      const answer = String(response.value).trim();
+      if (optionCounts.hasOwnProperty(answer)) {
+        optionCounts[answer]++;
+      }
+    });
+
+    const chartData: McqData[] = question.options.map((option) => ({
+      option,
+      count: optionCounts[option] || 0,
+    }));
+
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+    return (
+      <div className="h-full flex flex-col p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+        <div className="mb-4 flex-shrink-0">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            {responseCount === 0 ? 'Waiting for responses...' : `${responseCount} ${responseCount === 1 ? 'person' : 'people'} responded`}
+          </p>
+        </div>
+        <div className="flex-1 min-h-0">
+          <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="option" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+        </div>
+      </div>
+    );
+  }
+
+  if (question.type === 'scale') {
+    const scaleOptions = question.options && typeof question.options === 'object' && !Array.isArray(question.options)
+      ? question.options as { left: string; right: string }
+      : null;
+
+    if (!scaleOptions) {
+      return (
+        <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+          <p className="text-red-600">Invalid scale question format</p>
+        </div>
+      );
+    }
+
+    type ScaleResponse = {
+      name: string;
+      value: number;
+      id: string;
+      sessionId: string;
+      yOffset: number;
+      color: string;
+    };
+
+    // Parse scale responses
+    // For scale questions, value should be a number (the position on the scale)
+    // We need to get the name from session_id or another source
+    // For now, we'll use session_id as the name
+    const parsedResponses: ScaleResponse[] = responses
+      .map((response) => {
+        try {
+          // If value is a number, use it directly
+          // If it's a JSON string, parse it
+          let value: number;
+          let name: string;
+          
+          if (typeof response.value === 'number') {
+            value = response.value;
+            name = response.session_id; // Use session_id as name for now
+          } else {
+            const parsed = JSON.parse(String(response.value)) as { name?: string; value: number };
+            value = parsed.value;
+            name = parsed.name || response.session_id;
+          }
+          
+          // Get color for this session
+          const color = getColorForSession(response.session_id);
+          
+          return { 
+            name, 
+            value, 
+            id: response.id, 
+            sessionId: response.session_id,
+            yOffset: 0,
+            color,
+          };
+        } catch {
+          // If parsing fails, try to use value as number directly
+          if (typeof response.value === 'number') {
+            const color = getColorForSession(response.session_id);
+            return {
+              name: response.session_id,
+              value: response.value,
+              id: response.id,
+              sessionId: response.session_id,
+              yOffset: 0,
+              color,
+            };
+          }
+          return null;
+        }
+      })
+      .filter((r): r is ScaleResponse => r !== null);
+
+    // Sort by value to group nearby values together
+    parsedResponses.sort((a, b) => a.value - b.value);
+
+    // Calculate vertical offsets for both dots and names to avoid overlap
+    // Both dots and names stack vertically when close together
+    const dotSize = 16; // Size of dot (4 * 4px = 16px)
+    const dotSpacing = 12; // Spacing between stacked dots
+    const namePillHeight = 40; // Height of name pill including padding
+    const namePillSpacing = 8; // Spacing between name pill and dot
+    const namePillMinWidth = 80; // Minimum estimated width for name pills
+    const dotProximityThreshold = 5; // Percentage points - if dots are this close, stack them
+    
+    // Calculate offsets: if dots are close together, stack both dots and names vertically
+    // Use generous spacing to ensure no overlap
+    parsedResponses.forEach((response, index) => {
+      if (index === 0) {
+        response.yOffset = 0; // First response: at base position (on the line)
+      } else {
+        // Find all previous responses with dots close to this one
+        const closeDots = parsedResponses
+          .slice(0, index)
+          .filter((r) => Math.abs(r.value - response.value) <= dotProximityThreshold);
+        
+        if (closeDots.length > 0) {
+          // Stack this response above the highest stacked response in this group
+          // Add enough space for: name pill + spacing + dot + extra spacing
+          const maxOffset = Math.max(...closeDots.map((r) => r.yOffset));
+          // Total height per stacked item: name pill + spacing + dot + spacing between items
+          response.yOffset = maxOffset + namePillHeight + namePillSpacing + dotSize + dotSpacing;
+        } else {
+          response.yOffset = 0; // No close dots, at base position (on the line)
+        }
+      }
+    });
+
+    // Calculate max height needed for all dots and names (above the line)
+    // Need space for: stacked dots + name pills above each dot
+    const maxDotOffset = Math.max(...parsedResponses.map(r => r.yOffset), 0);
+    const maxHeight = maxDotOffset + dotSize + namePillSpacing + namePillHeight + 30; // Extra space for padding
+
+    return (
+      <div className="h-full flex flex-col p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+        {/* Question prompt - bold and centered at top */}
+        <div className="mb-6 text-center flex-shrink-0">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">{question.prompt}</h3>
+        </div>
+        
+        <div className="relative flex-1 flex flex-col justify-center">
+          {/* Responses - above the line */}
+          <div className="relative mb-1" style={{ height: `${maxHeight}px`, paddingBottom: '2px' }}>
+            {parsedResponses.map((response) => (
+              <div
+                key={response.id}
+                className="absolute transition-all duration-300"
+                style={{
+                  left: `${response.value}%`,
+                  bottom: `${response.yOffset}px`, // Dots stack vertically based on yOffset
+                  transform: 'translateX(-50%)',
+                }}
+              >
+                {/* Name pill - positioned above the dot */}
+                <div
+                  className="absolute left-1/2 transform -translate-x-1/2 whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium shadow-md z-10 border-2 border-gray-300 dark:border-gray-600"
+                  style={{ 
+                    backgroundColor: response.color,
+                    bottom: `${namePillSpacing + dotSize}px` // Position above dot
+                  }}
+                >
+                  <span className="text-black font-semibold">{response.name}</span>
+                </div>
+                {/* Dot - positioned at yOffset (stacks vertically) */}
+                <div 
+                  className="w-4 h-4 rounded-full border-2 border-white dark:border-gray-800 shadow-md"
+                  style={{ backgroundColor: response.color }}
+                ></div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Horizontal line */}
+          <div className="h-1 bg-gray-400 dark:bg-gray-500 w-full mb-2"></div>
+          
+          {/* Labels */}
+          <div className="flex justify-between text-sm font-semibold">
+            <span>{scaleOptions.left}</span>
+            <span>{scaleOptions.right}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Text responses - show list
+  return (
+    <div className="h-full flex flex-col p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+      <div className="mb-4 flex-shrink-0">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {responseCount === 0 ? 'Waiting for responses...' : `What the room is saying:`}
+        </p>
+      </div>
+      {responses.length === 0 ? (
+        <p className="text-gray-500 dark:text-gray-400">No responses yet</p>
+      ) : (
+        <div className="flex-1 overflow-y-auto space-y-2">
+          {responses.map((response) => (
+            <div
+              key={response.id}
+              className="p-3 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600"
+            >
+              <p className="text-gray-900 dark:text-gray-100">{String(response.value)}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
