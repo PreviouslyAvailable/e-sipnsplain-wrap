@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   code TEXT UNIQUE NOT NULL,
   name TEXT,
   active_question_id UUID,
+  session_started BOOLEAN DEFAULT false, -- Whether the host has started the session
   timeline_position JSONB, -- { month: string, scrollPosition: number, activeMomentId: string | null }
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS questions (
   prompt TEXT NOT NULL,
   options JSONB,
   order_index INTEGER NOT NULL,
+  used BOOLEAN DEFAULT false, -- Whether this question has been opened and closed once
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -101,6 +103,10 @@ CREATE POLICY "Allow public insert on questions"
 
 CREATE POLICY "Allow public update on questions"
   ON questions FOR UPDATE
+  USING (true);
+
+CREATE POLICY "Allow public delete on responses"
+  ON responses FOR DELETE
   USING (true);
 
 -- RLS Policies for responses - allow public read/write

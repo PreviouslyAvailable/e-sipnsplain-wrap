@@ -103,7 +103,7 @@ export default function HorizontalTimeline({
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-gray-500">Loading timeline...</p>
+        <p style={{ color: 'var(--untitled-ui-gray600)' }}>Loading timeline...</p>
       </div>
     );
   }
@@ -111,7 +111,7 @@ export default function HorizontalTimeline({
   if (error) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-red-500">Error: {error.message}</p>
+        <p style={{ color: 'var(--mae_red)' }}>Error: {error.message}</p>
       </div>
     );
   }
@@ -119,7 +119,7 @@ export default function HorizontalTimeline({
   if (photos.length === 0) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-gray-500">No photos yet</p>
+        <p style={{ color: 'var(--untitled-ui-gray600)' }}>No photos yet</p>
       </div>
     );
   }
@@ -135,24 +135,25 @@ export default function HorizontalTimeline({
           {monthGroups.map((group, groupIndex) => (
             <div 
               key={`${group.year}-${group.month}`} 
-              className={`flex flex-col h-full w-72 flex-shrink-0 ${
-                groupIndex < monthGroups.length - 1 ? 'border-r border-gray-300 dark:border-gray-600' : ''
-              }`}
+              className="flex flex-col h-full w-72 flex-shrink-0"
+              style={{
+                borderRight: groupIndex < monthGroups.length - 1 ? '1px solid var(--untitled-ui-gray300)' : 'none'
+              }}
             >
               {/* Month divider - sticky header within column */}
-              <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 py-2 mb-4">
+              <div className="sticky top-0 z-10 py-2 mb-4" style={{ backgroundColor: 'var(--cream)' }}>
                 <div className="px-4">
                   <div className="flex items-center gap-4 justify-center">
-                    <div className="h-px bg-gray-300 dark:bg-gray-600 flex-1 max-w-8" />
+                    <div className="h-px flex-1 max-w-8" style={{ backgroundColor: 'var(--untitled-ui-gray300)' }} />
                     <div className="flex flex-col items-center whitespace-nowrap">
-                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      <span className="text-sm font-semibold" style={{ color: 'var(--black)' }}>
                         {group.month}
                       </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-500">
+                      <span className="text-xs" style={{ color: 'var(--untitled-ui-gray600)' }}>
                         {group.year}
                       </span>
                     </div>
-                    <div className="h-px bg-gray-300 dark:bg-gray-600 flex-1 max-w-8" />
+                    <div className="h-px flex-1 max-w-8" style={{ backgroundColor: 'var(--untitled-ui-gray300)' }} />
                   </div>
                 </div>
               </div>

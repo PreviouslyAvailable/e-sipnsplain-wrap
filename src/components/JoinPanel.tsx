@@ -61,12 +61,23 @@ export default function JoinPanel() {
           throw roomError || new Error('Failed to load room');
         }
         
-        setRoom(roomData);
+        // Ensure session_started defaults to false if null/undefined
+        const normalizedRoom = {
+          ...roomData,
+          session_started: roomData.session_started ?? false,
+        };
+        
+        setRoom(normalizedRoom);
         setError(null);
 
         // Subscribe to realtime updates
         unsubscribe = subscribeToRoom(roomData.id, (updatedRoom) => {
-          setRoom(updatedRoom);
+          // Normalize session_started in subscription updates too
+          const normalizedUpdatedRoom = {
+            ...updatedRoom,
+            session_started: updatedRoom.session_started ?? false,
+          };
+          setRoom(normalizedUpdatedRoom);
         });
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to load room'));
@@ -93,33 +104,54 @@ export default function JoinPanel() {
 
   // Fetch active question when active_question_id changes
   useEffect(() => {
-    if (!room?.active_question_id) {
+    if (!room) return;
+    
+    const currentQuestionId = room.active_question_id;
+    
+    if (!currentQuestionId) {
+      // Question was closed - reset everything and show waiting state
       setActiveQuestion(null);
       setTextAnswer('');
+      setScaleValue(50);
       setAnswered(false);
+      setSubmitting(false);
       return;
     }
 
+    let cancelled = false;
+
     const loadQuestion = async () => {
       try {
-        const { data: question, error: questionError } = await getQuestionById(room.active_question_id!);
+        const { data: question, error: questionError } = await getQuestionById(currentQuestionId);
+        
+        if (cancelled) return;
         
         if (questionError || !question) {
           throw questionError || new Error('Failed to load question');
         }
         
+        // Check if this is still the active question
+        // Use a ref or state check - but since we're in useEffect, we need to check room again
+        // Actually, we should just set it since the effect will re-run if room changes
         setActiveQuestion(question);
         setTextAnswer('');
         setScaleValue(50);
         setAnswered(isQuestionAnswered(question.id));
+        setSubmitting(false);
         setError(null);
       } catch (err) {
+        if (cancelled) return;
         setError(err instanceof Error ? err : new Error('Failed to load question'));
         setActiveQuestion(null);
+        setAnswered(false);
       }
     };
 
     loadQuestion();
+
+    return () => {
+      cancelled = true;
+    };
   }, [room?.active_question_id]);
 
   const handleMcqSubmit = useCallback(async (option: string) => {
@@ -262,7 +294,7 @@ export default function JoinPanel() {
         </div>
       ) : !room ? (
         <div className="text-center" style={{ color: 'var(--untitled-ui-gray600)' }}>Connecting to the room...</div>
-      ) : !room.active_question_id ? (
+      ) : room.session_started !== true ? (
         <div className="text-center py-12">
           {displayName ? (
             <>
@@ -290,6 +322,17 @@ export default function JoinPanel() {
             </>
           )}
         </div>
+      ) : !room.active_question_id ? (
+        <div className="text-center py-12">
+          <p className="text-xl md:text-2xl font-semibold mb-3" style={{ color: 'var(--black)' }}>
+            Waiting for the next reflection...
+          </p>
+          <div className="flex justify-center mt-6">
+            <div className="animate-pulse">
+              <div className="w-16 h-16 rounded-full" style={{ backgroundColor: 'var(--untitled-ui-gray300)' }}></div>
+            </div>
+          </div>
+        </div>
       ) : !activeQuestion ? (
         <div className="text-center" style={{ color: 'var(--untitled-ui-gray600)' }}>Loading reflection...</div>
       ) : (
@@ -297,28 +340,11 @@ export default function JoinPanel() {
 
           <div className="mb-6">
             <h2 className="text-2xl md:text-3xl font-bold mb-4" style={{ color: 'var(--black)' }}>{activeQuestion.prompt}</h2>
-            <span 
-              className="inline-block px-3 py-1 text-sm font-semibold rounded"
-              style={{
-                backgroundColor: activeQuestion.type === 'mcq' 
-                  ? 'var(--untitled-ui-primary100)' 
-                  : activeQuestion.type === 'scale'
-                  ? 'var(--untitled-ui-primary100)'
-                  : 'var(--untitled-ui-gray100)',
-                color: activeQuestion.type === 'mcq' 
-                  ? 'var(--untitled-ui-primary700)' 
-                  : activeQuestion.type === 'scale'
-                  ? 'var(--untitled-ui-primary700)'
-                  : 'var(--untitled-ui-gray700)'
-              }}
-            >
-              {activeQuestion.type.toUpperCase()}
-            </span>
           </div>
 
           {answered && activeQuestion.type === 'scale' ? (
             <div className="p-6 rounded-lg text-center" style={{ backgroundColor: 'var(--untitled-ui-gray50)', border: '2px solid var(--untitled-ui-gray300)' }}>
-              <p className="text-2xl font-bold" style={{ color: 'var(--untitled-ui-gray700)' }}>You&apos;re in</p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--untitled-ui-gray700)' }}>You&apos;ve submitted</p>
             </div>
           ) : activeQuestion.type === 'mcq' ? (
             <div className="space-y-3">

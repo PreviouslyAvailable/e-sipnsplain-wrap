@@ -71,9 +71,9 @@ export default function PresentPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col relative" style={{ backgroundColor: 'var(--untitled-ui-white)' }}>
+    <div className="h-screen flex flex-col relative" style={{ backgroundColor: 'var(--cream)' }}>
       {/* Minimal header */}
-      <header className="flex-shrink-0 px-6 py-4" style={{ borderBottom: '1px solid var(--untitled-ui-gray200)' }}>
+      <header className="flex-shrink-0 px-6 py-4" style={{ borderBottom: '1px solid var(--untitled-ui-gray200)', backgroundColor: 'var(--cream)' }}>
         <h1 className="text-2xl font-bold" style={{ color: 'var(--black)' }}>Sip&apos;n&apos;Sleigh</h1>
       </header>
 
@@ -81,7 +81,7 @@ export default function PresentPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Timeline Pane */}
         <div 
-          className={`${activeQuestion ? 'w-2/5' : 'w-1/2'} transition-all`}
+          className={`${activeQuestion ? 'w-2/5' : 'w-[35%]'} transition-all`}
           style={{ 
             borderRight: '1px solid var(--untitled-ui-gray200)',
             opacity: activeQuestion ? 0.4 : 1
@@ -95,7 +95,7 @@ export default function PresentPage() {
 
         {/* Right: Focus Pane (only show when no active question) */}
         {!activeQuestion && (
-          <div className="w-1/2">
+          <div className="w-[65%]">
             <PhotoFocus photo={selectedPhoto} />
           </div>
         )}

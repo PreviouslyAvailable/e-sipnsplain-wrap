@@ -17,8 +17,8 @@ function getPhotoUrl(photo: Photo): string {
 export default function PhotoFocus({ photo }: PhotoFocusProps) {
   if (!photo) {
     return (
-      <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900">
-        <p className="text-gray-400 dark:text-gray-600">Select a photo to view</p>
+      <div className="flex items-center justify-center h-full" style={{ backgroundColor: 'var(--cream)' }}>
+        <p style={{ color: 'var(--untitled-ui-gray600)' }}>Select a photo to view</p>
       </div>
     );
   }
@@ -26,7 +26,7 @@ export default function PhotoFocus({ photo }: PhotoFocusProps) {
   const imageUrl = getPhotoUrl(photo);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-gray-50 dark:bg-gray-900 px-6 pr-12 py-12">
+    <div className="flex flex-col items-center justify-center h-full px-6 pr-12 py-12" style={{ backgroundColor: 'var(--cream)' }}>
       <div className="relative w-full h-full flex items-center justify-center">
         <img
           src={imageUrl}
