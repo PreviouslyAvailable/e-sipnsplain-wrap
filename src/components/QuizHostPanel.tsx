@@ -1,3 +1,7 @@
+git add src/components/QuizHostPanel.tsx
+git commit -m "Fix LiveResultsChart props mismatch"
+git push
+
 'use client';
 
 import { useEffect, useState } from 'react';
