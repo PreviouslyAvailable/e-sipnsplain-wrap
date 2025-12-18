@@ -9,7 +9,6 @@ export async function GET(request: Request) {
     const folder = searchParams.get('folder') || '';
     const recursive = searchParams.get('recursive') === 'true';
 
-    console.log('Storage list request:', { bucket, folder, recursive });
 
     let result;
 
@@ -27,7 +26,6 @@ export async function GET(request: Request) {
       );
     }
 
-    console.log(`Returning ${result.data?.length || 0} photos`);
 
     // Parse photos to include metadata
     const parsedPhotos = (result.data || []).map(parsePhoto);

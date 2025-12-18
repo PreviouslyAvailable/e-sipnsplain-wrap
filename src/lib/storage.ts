@@ -40,12 +40,10 @@ export async function listPhotosFromStorage(
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.JPG', '.JPEG', '.PNG', '.GIF', '.WEBP', '.SVG'];
     const files: StorageFile[] = [];
 
-    console.log(`Listing files in bucket "${bucketName}", folder: "${folder || 'root'}"`);
 
     for (const item of data) {
       // Skip folders
       if (!item.id) {
-        console.log(`Skipping folder: ${item.name}`);
         continue;
       }
 
@@ -55,7 +53,6 @@ export async function listPhotosFromStorage(
       );
       
       if (!isImage) {
-        console.log(`Skipping non-image: ${item.name}`);
       }
 
       if (isImage) {
@@ -185,7 +182,6 @@ export async function listAllPhotosRecursive(
           bucket: bucketName,
           folder: currentFolder,
           error: error.message,
-          statusCode: error.statusCode,
         });
         throw error;
       }
@@ -195,7 +191,6 @@ export async function listAllPhotosRecursive(
         return;
       }
 
-      console.log(`Found ${data.length} items in ${currentFolder || 'root'}`);
 
       const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.JPG', '.JPEG', '.PNG'];
 
@@ -204,7 +199,6 @@ export async function listAllPhotosRecursive(
 
         // If it's a folder (no id), recurse into it
         if (!item.id) {
-          console.log(`Recursing into folder: ${itemPath}`);
           await listRecursive(itemPath);
         } else {
           // It's a file - check if it's an image
@@ -229,7 +223,6 @@ export async function listAllPhotosRecursive(
     }
 
     await listRecursive(folder);
-    console.log(`Total photos found: ${allFiles.length}`);
     return { data: allFiles, error: null };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';

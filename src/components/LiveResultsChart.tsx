@@ -43,21 +43,17 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
         if (error) {
           console.error('Error loading responses:', error);
         } else {
-          console.log('LiveResultsChart: Loaded initial responses:', initialResponses);
           // getResponses maps 'answer' to 'value', so this should be ResponseRow[]
           setResponses((initialResponses || []) as unknown as ResponseRow[]);
         }
 
         // Subscribe to new responses
         unsubscribe = subscribeToResponses(question.id, (newResponse) => {
-          console.log('LiveResultsChart: New response received in subscription:', newResponse);
           setResponses((prev) => {
             // Avoid duplicates
             if (prev.some((r) => r.id === newResponse.id)) {
-              console.log('LiveResultsChart: Duplicate response, skipping');
               return prev;
             }
-            console.log('LiveResultsChart: Adding new response, total:', prev.length + 1);
             return [...prev, newResponse];
           });
         });
@@ -78,7 +74,6 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
           setResponses((prev) => {
             // Only update if we have new responses
             if (currentResponses.length !== prev.length) {
-              console.log('LiveResultsChart: Polling found new responses, updating');
               // getResponses maps 'answer' to 'value', so this should be ResponseRow[]
               return currentResponses as unknown as ResponseRow[];
             }

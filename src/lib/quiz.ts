@@ -162,20 +162,16 @@ export function subscribeToResponses(
         filter: `question_id=eq.${questionId}`,
       },
       (payload) => {
-        console.log('New response received:', payload);
         // Map 'answer' column to 'value' for consistency
         const response = payload.new as any;
         const mappedResponse = {
           ...response,
           value: response.answer || response.value, // Support both column names
         } as ResponseRow;
-        console.log('Mapped response:', mappedResponse);
         callback(mappedResponse);
       }
     )
-    .subscribe((status) => {
-      console.log('Subscription status:', status);
-    });
+    .subscribe();
 
   return () => {
     supabase.removeChannel(channel);

@@ -42,7 +42,7 @@ export async function seedPhotosFromMoments(
     if (options?.clearExisting) {
       // Note: This would require a deletePhotos function
       // For now, we'll skip this and just add photos
-      console.log('Note: clearExisting is not yet implemented');
+      // Note: clearExisting is not yet implemented
     }
 
     // Convert moments.json data to photos
@@ -156,7 +156,7 @@ export async function seedPhotosFromStorage(
     if (options?.clearExisting) {
       // Note: This would require a deletePhotos function
       // For now, we'll skip this and just add photos
-      console.log('Note: clearExisting is not yet implemented');
+      // Note: clearExisting is not yet implemented
     }
 
     // Create photo records in database
