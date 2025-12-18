@@ -13,7 +13,7 @@ export async function getTimelinePhotos() {
   return supabase
     .from("timeline_photos")
     .select("id, storage_path, public_url, taken_at, caption, location")
-    .order("taken_at", { ascending: true, nullsFirst: false });
+    .order("taken_at", { ascending: true });
 }
 
 export async function getPhotoById(photoId: string) {
