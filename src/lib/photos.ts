@@ -6,20 +6,19 @@ export type Photo = {
   public_url: string;
   taken_at: string | null;
   caption: string | null;
-  location: string | null;
 };
 
 export async function getTimelinePhotos() {
   return supabase
     .from("timeline_photos")
-    .select("id, storage_path, public_url, taken_at, caption, location")
-    .order("taken_at", { ascending: true });
+    .select("id, storage_path, public_url, taken_at, caption")
+    .order("taken_at", { ascending: true, nullsFirst: false });
 }
 
 export async function getPhotoById(photoId: string) {
   return supabase
     .from("timeline_photos")
-    .select("id, storage_path, public_url, taken_at, caption, location")
+    .select("id, storage_path, public_url, taken_at, caption")
     .eq("id", photoId)
     .single();
 }

@@ -93,16 +93,16 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
 
   if (!question) {
     return (
-      <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-        <p className="text-gray-500 dark:text-gray-400">No reflection open</p>
+      <div className="p-6 rounded-lg border-2" style={{ backgroundColor: 'var(--untitled-ui-gray50)', borderColor: 'var(--untitled-ui-gray200)' }}>
+        <p style={{ color: 'var(--untitled-ui-gray600)' }}>No reflection open</p>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-        <p className="text-gray-500 dark:text-gray-400">The room is responding...</p>
+      <div className="p-6 rounded-lg border-2" style={{ backgroundColor: 'var(--untitled-ui-gray50)', borderColor: 'var(--untitled-ui-gray200)' }}>
+        <p style={{ color: 'var(--untitled-ui-gray600)' }}>The room is responding...</p>
       </div>
     );
   }
@@ -129,12 +129,13 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
       count: optionCounts[option] || 0,
     }));
 
-    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+    // Use actual hex color values for SVG fill attributes (CSS custom properties don't work in SVG)
+    const colors = ['#000000', '#344054', '#475467', '#6941c6', '#eb533b', '#1d2939'];
 
     return (
-      <div className="h-full flex flex-col p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+      <div className="h-full flex flex-col p-6 rounded-lg border-2" style={{ backgroundColor: 'var(--untitled-ui-gray50)', borderColor: 'var(--untitled-ui-gray200)' }}>
         <div className="mb-4 flex-shrink-0">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-sm mb-4" style={{ color: 'var(--untitled-ui-gray700)' }}>
             {responseCount === 0 ? 'Waiting for responses...' : `${responseCount} ${responseCount === 1 ? 'person' : 'people'} responded`}
           </p>
         </div>
@@ -164,8 +165,8 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
 
     if (!scaleOptions) {
       return (
-        <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-          <p className="text-red-600">Invalid scale question format</p>
+        <div className="p-6 rounded-lg border-2" style={{ backgroundColor: 'var(--untitled-ui-gray50)', borderColor: 'var(--untitled-ui-gray200)' }}>
+          <p style={{ color: 'var(--mae_red)' }}>Invalid scale question format</p>
         </div>
       );
     }
@@ -283,10 +284,10 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
     const maxHeight = allDotsHeight + namePillSpacing + allNamesHeight + 30; // Extra space for padding
 
     return (
-      <div className="h-full flex flex-col p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+      <div className="h-full flex flex-col p-6 rounded-lg border-2" style={{ backgroundColor: 'var(--untitled-ui-gray50)', borderColor: 'var(--untitled-ui-gray200)' }}>
         {/* Question prompt - bold and centered at top */}
         <div className="mb-6 text-center flex-shrink-0">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">{question.prompt}</h3>
+          <h3 className="text-xl font-bold" style={{ color: 'var(--black)' }}>{question.prompt}</h3>
         </div>
         
         <div className="relative flex-1 flex flex-col justify-center">
@@ -304,8 +305,9 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
               >
                 {/* Name pill - all names stack together at top, above all dots */}
                 <div
-                  className="absolute left-1/2 transform -translate-x-1/2 whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium shadow-md z-10 border-2 border-gray-300 dark:border-gray-600"
-                  style={{ 
+                  className="absolute left-1/2 transform -translate-x-1/2 whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium shadow-md z-10 border-2"
+                  style={{
+                    borderColor: 'var(--untitled-ui-gray300)',
                     backgroundColor: response.color,
                     // Position name: all names stack at top, then dots below
                     // Order: name 2 (top), name 1, dot 2, dot 1 (on line)
@@ -349,8 +351,9 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
                 </div>
                 {/* Dot - positioned at yOffset (first dot at 0 = on the line) */}
                 <div 
-                  className="absolute left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full border-2 border-white dark:border-gray-800 shadow-md"
+                  className="absolute left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full border-2 shadow-md"
                   style={{ 
+                    borderColor: 'var(--untitled-ui-white)',
                     backgroundColor: response.color,
                     bottom: `${response.yOffset}px` // yOffset=0 means on the line
                   }}
@@ -360,7 +363,7 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
           </div>
           
           {/* Horizontal line */}
-          <div className="h-1 bg-gray-400 dark:bg-gray-500 w-full mb-2"></div>
+          <div className="h-1 w-full mb-2" style={{ backgroundColor: 'var(--untitled-ui-gray300)' }}></div>
           
           {/* Labels */}
           <div className="flex justify-between text-sm font-semibold">
@@ -374,22 +377,32 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
 
   // Text responses - show list
   return (
-    <div className="h-full flex flex-col p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+    <div className="h-full flex flex-col p-6 rounded-lg border-2" style={{ backgroundColor: 'var(--untitled-ui-gray50)', borderColor: 'var(--untitled-ui-gray200)' }}>
+      {/* Question prompt - bold and centered at top */}
+      <div className="mb-6 text-center flex-shrink-0">
+        <h3 className="text-xl font-bold" style={{ color: 'var(--black)' }}>{question.prompt}</h3>
+      </div>
       <div className="mb-4 flex-shrink-0">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <p className="text-sm" style={{ color: 'var(--untitled-ui-gray700)' }}>
           {responseCount === 0 ? 'Waiting for responses...' : `What the room is saying:`}
         </p>
       </div>
       {responses.length === 0 ? (
-        <p className="text-gray-500 dark:text-gray-400">No responses yet</p>
+        <div className="flex-1 flex items-center justify-center">
+          <p style={{ color: 'var(--untitled-ui-gray600)' }}>No responses yet</p>
+        </div>
       ) : (
         <div className="flex-1 overflow-y-auto space-y-2">
           {responses.map((response) => (
             <div
               key={response.id}
-              className="p-3 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600"
+              className="p-3 rounded border"
+              style={{ 
+                backgroundColor: 'var(--untitled-ui-white)',
+                borderColor: 'var(--untitled-ui-gray200)'
+              }}
             >
-              <p className="text-gray-900 dark:text-gray-100">{String(response.value)}</p>
+              <p style={{ color: 'var(--black)' }}>{String(response.value)}</p>
             </div>
           ))}
         </div>

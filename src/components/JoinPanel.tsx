@@ -208,61 +208,117 @@ export default function JoinPanel() {
   return (
     <div className="p-6 md:p-8">
       {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="mb-4 p-4 rounded border" style={{ backgroundColor: 'var(--untitled-ui-gray100)', borderColor: 'var(--mae_red)', color: 'var(--mae_red)' }}>
           Error: {error.message}
         </div>
       )}
 
-      {!room ? (
-        <div className="text-center text-gray-500">Connecting to the room...</div>
+      {/* Show name input first if no name is set */}
+      {showNameInput && !displayName ? (
+        <div className="max-w-md mx-auto">
+          <div className="mb-6 p-6 rounded-lg shadow-sm" style={{ backgroundColor: 'var(--untitled-ui-white)', border: '1px solid var(--untitled-ui-gray200)' }}>
+            <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--black)' }}>Enter your name</h3>
+            <p className="text-sm mb-4" style={{ color: 'var(--untitled-ui-gray600)' }}>
+              This will be shown when you respond to reflections
+            </p>
+            <form onSubmit={handleNameSubmit} className="space-y-4">
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                placeholder="Your name..."
+                className="w-full p-4 text-lg rounded-lg focus:outline-none focus:ring-2 transition-colors"
+                style={{ 
+                  border: '1px solid var(--untitled-ui-gray300)',
+                  backgroundColor: 'var(--untitled-ui-white)',
+                  color: 'var(--black)',
+                  '--tw-ring-color': 'var(--mae_red)'
+                } as React.CSSProperties}
+                autoFocus
+              />
+              <button
+                type="submit"
+                disabled={!nameInput.trim()}
+                className="w-full p-4 rounded-lg text-lg font-medium transition-colors text-white"
+                style={{ 
+                  backgroundColor: !nameInput.trim() ? 'var(--untitled-ui-gray300)' : 'var(--black)',
+                  cursor: !nameInput.trim() ? 'not-allowed' : 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  if (nameInput.trim()) {
+                    e.currentTarget.style.backgroundColor = 'var(--untitled-ui-gray800)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (nameInput.trim()) {
+                    e.currentTarget.style.backgroundColor = 'var(--black)';
+                  }
+                }}
+              >
+                Continue
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : !room ? (
+        <div className="text-center" style={{ color: 'var(--untitled-ui-gray600)' }}>Connecting to the room...</div>
       ) : !room.active_question_id ? (
-        <div className="text-center text-gray-500 py-12">
-          <p className="text-xl mb-2">The room is gathering...</p>
-          <p className="text-sm">Waiting for the host to open a reflection</p>
+        <div className="text-center py-12">
+          {displayName ? (
+            <>
+              <p className="text-2xl md:text-3xl font-bold mb-3" style={{ color: 'var(--black)' }}>
+                Welcome, {displayName}
+              </p>
+              <p className="text-lg mb-2" style={{ color: 'var(--untitled-ui-gray700)' }}>
+                You&apos;re all set
+              </p>
+              <p className="text-sm" style={{ color: 'var(--untitled-ui-gray600)' }}>
+                Waiting for the host to begin...
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-xl md:text-2xl font-semibold mb-3" style={{ color: 'var(--black)' }}>
+                Welcome to Sip&apos;n&apos;Sleigh &apos;25
+              </p>
+              <p className="text-base mb-2" style={{ color: 'var(--untitled-ui-gray700)' }}>
+                The room is ready
+              </p>
+              <p className="text-sm" style={{ color: 'var(--untitled-ui-gray600)' }}>
+                Waiting for the host to begin...
+              </p>
+            </>
+          )}
         </div>
       ) : !activeQuestion ? (
-        <div className="text-center text-gray-500">Loading reflection...</div>
+        <div className="text-center" style={{ color: 'var(--untitled-ui-gray600)' }}>Loading reflection...</div>
       ) : (
         <div className="max-w-2xl mx-auto">
-          {showNameInput && (
-            <div className="mb-6 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">Enter your name</h3>
-              <form onSubmit={handleNameSubmit} className="space-y-4">
-                <input
-                  type="text"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  placeholder="Your name..."
-                  className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  disabled={!nameInput.trim()}
-                  className="w-full p-4 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-lg font-medium transition-colors"
-                >
-                  Continue
-                </button>
-              </form>
-            </div>
-          )}
 
           <div className="mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">{activeQuestion.prompt}</h2>
-            <span className={`inline-block px-3 py-1 text-sm font-semibold rounded ${
-              activeQuestion.type === 'mcq' 
-                ? 'bg-blue-100 text-blue-800' 
-                : activeQuestion.type === 'scale'
-                ? 'bg-purple-100 text-purple-800'
-                : 'bg-green-100 text-green-800'
-            }`}>
+            <h2 className="text-2xl md:text-3xl font-bold mb-4" style={{ color: 'var(--black)' }}>{activeQuestion.prompt}</h2>
+            <span 
+              className="inline-block px-3 py-1 text-sm font-semibold rounded"
+              style={{
+                backgroundColor: activeQuestion.type === 'mcq' 
+                  ? 'var(--untitled-ui-primary100)' 
+                  : activeQuestion.type === 'scale'
+                  ? 'var(--untitled-ui-primary100)'
+                  : 'var(--untitled-ui-gray100)',
+                color: activeQuestion.type === 'mcq' 
+                  ? 'var(--untitled-ui-primary700)' 
+                  : activeQuestion.type === 'scale'
+                  ? 'var(--untitled-ui-primary700)'
+                  : 'var(--untitled-ui-gray700)'
+              }}
+            >
               {activeQuestion.type.toUpperCase()}
             </span>
           </div>
 
           {answered && activeQuestion.type === 'scale' ? (
-            <div className="p-6 bg-green-50 dark:bg-green-900/20 border-2 border-green-500 dark:border-green-600 rounded-lg text-center">
-              <p className="text-2xl font-bold text-green-700 dark:text-green-400">You're in</p>
+            <div className="p-6 rounded-lg text-center" style={{ backgroundColor: 'var(--untitled-ui-gray50)', border: '2px solid var(--untitled-ui-gray300)' }}>
+              <p className="text-2xl font-bold" style={{ color: 'var(--untitled-ui-gray700)' }}>You&apos;re in</p>
             </div>
           ) : activeQuestion.type === 'mcq' ? (
             <div className="space-y-3">
@@ -271,7 +327,21 @@ export default function JoinPanel() {
                   key={index}
                   onClick={() => handleMcqSubmit(option)}
                   disabled={submitting}
-                  className="w-full p-6 text-left bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-lg font-medium transition-colors"
+                  className="w-full p-6 text-left rounded-lg text-lg font-medium transition-colors text-white"
+                  style={{
+                    backgroundColor: submitting ? 'var(--untitled-ui-gray300)' : 'var(--black)',
+                    cursor: submitting ? 'not-allowed' : 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!submitting) {
+                      e.currentTarget.style.backgroundColor = 'var(--untitled-ui-gray800)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!submitting) {
+                      e.currentTarget.style.backgroundColor = 'var(--black)';
+                    }
+                  }}
                 >
                   {option}
                 </button>
@@ -284,12 +354,12 @@ export default function JoinPanel() {
                 : null;
 
               if (!scaleOptions) {
-                return <div className="text-red-600">Invalid scale question format</div>;
+                return <div style={{ color: 'var(--mae_red)' }}>Invalid scale question format</div>;
               }
 
               return (
                 <form onSubmit={handleScaleSubmit} className="space-y-6">
-                  <div className="flex justify-between items-center text-lg font-semibold mb-4">
+                  <div className="flex justify-between items-center text-lg font-semibold mb-4" style={{ color: 'var(--black)' }}>
                     <span>{scaleOptions.left}</span>
                     <span>{scaleOptions.right}</span>
                   </div>
@@ -301,13 +371,31 @@ export default function JoinPanel() {
                     value={scaleValue}
                     onChange={(e) => setScaleValue(Number(e.target.value))}
                     disabled={submitting || answered}
-                    className="w-full h-4 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed accent-blue-500"
+                    className="w-full h-4 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: 'var(--untitled-ui-gray200)',
+                      accentColor: 'var(--black)'
+                    }}
                   />
-                  <div className="text-center text-2xl font-bold mb-4">{scaleValue}</div>
+                  <div className="text-center text-2xl font-bold mb-4" style={{ color: 'var(--black)' }}>{scaleValue}</div>
                   <button
                     type="submit"
                     disabled={!displayName || submitting || answered}
-                    className="w-full p-4 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-lg font-medium transition-colors"
+                    className="w-full p-4 rounded-lg text-lg font-medium transition-colors text-white"
+                    style={{
+                      backgroundColor: (!displayName || submitting || answered) ? 'var(--untitled-ui-gray300)' : 'var(--black)',
+                      cursor: (!displayName || submitting || answered) ? 'not-allowed' : 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (displayName && !submitting && !answered) {
+                        e.currentTarget.style.backgroundColor = 'var(--untitled-ui-gray800)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (displayName && !submitting && !answered) {
+                        e.currentTarget.style.backgroundColor = 'var(--black)';
+                      }
+                    }}
                   >
                     {submitting ? 'Sending...' : 'Send'}
                   </button>
@@ -322,12 +410,32 @@ export default function JoinPanel() {
                 onChange={(e) => setTextAnswer(e.target.value)}
                 disabled={submitting}
                 placeholder="Type your answer..."
-                className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                className="w-full p-4 text-lg rounded-lg focus:outline-none focus:ring-2 transition-colors"
+                style={{
+                  border: '1px solid var(--untitled-ui-gray300)',
+                  backgroundColor: 'var(--untitled-ui-white)',
+                  color: 'var(--black)',
+                  '--tw-ring-color': 'var(--mae_red)'
+                } as React.CSSProperties}
               />
               <button
                 type="submit"
                 disabled={!textAnswer.trim() || submitting}
-                className="w-full p-4 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-lg font-medium transition-colors"
+                className="w-full p-4 rounded-lg text-lg font-medium transition-colors text-white"
+                style={{
+                  backgroundColor: (!textAnswer.trim() || submitting) ? 'var(--untitled-ui-gray300)' : 'var(--black)',
+                  cursor: (!textAnswer.trim() || submitting) ? 'not-allowed' : 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  if (textAnswer.trim() && !submitting) {
+                    e.currentTarget.style.backgroundColor = 'var(--untitled-ui-gray800)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (textAnswer.trim() && !submitting) {
+                    e.currentTarget.style.backgroundColor = 'var(--black)';
+                  }
+                }}
               >
                 {submitting ? 'Sending...' : 'Send'}
               </button>

@@ -57,12 +57,7 @@ export default function PhotoFocus({ photo }: PhotoFocusProps) {
       </div>
       {photo.caption && (
         <div className="mt-4 text-center">
-          <p className="text-lg text-gray-700 dark:text-gray-300">{photo.caption}</p>
-        </div>
-      )}
-      {photo.location && (
-        <div className="mt-2 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">{photo.location}</p>
+          <p className="text-lg" style={{ color: 'var(--untitled-ui-gray700)' }}>{photo.caption}</p>
         </div>
       )}
     </div>

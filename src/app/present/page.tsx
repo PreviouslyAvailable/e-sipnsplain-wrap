@@ -62,27 +62,31 @@ export default function PresentPage() {
 
   if (!room) {
     return (
-      <div className="h-screen flex items-center justify-center bg-white dark:bg-gray-900">
+      <div className="h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--cream)' }}>
         <div className="text-center">
-          <p className="text-gray-500">Loading room...</p>
+          <p style={{ color: 'var(--untitled-ui-gray600)' }}>Loading room...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-white dark:bg-gray-900 relative">
+    <div className="h-screen flex flex-col relative" style={{ backgroundColor: 'var(--untitled-ui-white)' }}>
       {/* Minimal header */}
-      <header className="flex-shrink-0 px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sip&apos;n&apos;Sleigh</h1>
+      <header className="flex-shrink-0 px-6 py-4" style={{ borderBottom: '1px solid var(--untitled-ui-gray200)' }}>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--black)' }}>Sip&apos;n&apos;Sleigh</h1>
       </header>
 
       {/* Main content - full width when no question, split when question active */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Timeline Pane */}
-        <div className={`${activeQuestion ? 'w-2/5' : 'w-1/2'} border-r border-gray-200 dark:border-gray-800 transition-all ${
-          activeQuestion ? 'opacity-40' : 'opacity-100'
-        }`}>
+        <div 
+          className={`${activeQuestion ? 'w-2/5' : 'w-1/2'} transition-all`}
+          style={{ 
+            borderRight: '1px solid var(--untitled-ui-gray200)',
+            opacity: activeQuestion ? 0.4 : 1
+          }}
+        >
           <HorizontalTimeline
             selectedPhotoId={selectedPhoto?.id || null}
             onPhotoSelect={setSelectedPhoto}
@@ -99,8 +103,8 @@ export default function PresentPage() {
 
       {/* Full-screen popup overlay for active question */}
       {activeQuestion && (
-        <div className="fixed inset-0 z-50 bg-black/20 flex items-center justify-center p-[10%]">
-          <div className="w-full h-full bg-white dark:bg-gray-900 rounded-lg shadow-2xl overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-[10%]" style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
+          <div className="w-full h-full rounded-lg shadow-2xl overflow-hidden flex flex-col" style={{ backgroundColor: 'var(--untitled-ui-white)' }}>
             <div className="flex-1 overflow-y-auto flex flex-col">
               <LiveResultsChart question={activeQuestion} />
             </div>
