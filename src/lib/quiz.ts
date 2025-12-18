@@ -210,7 +210,7 @@ export async function resetAllQuestions(roomId: string) {
       console.error('Error loading questions:', questionsError);
       return { 
         data: null, 
-        error: questionsError || new Error(`Failed to load questions: ${questionsError?.message || 'Unknown error'}`) 
+        error: questionsError || new Error('Failed to load questions: Unknown error') 
       };
     }
 
