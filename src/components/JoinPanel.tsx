@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getRoomByCode, getQuestionById, subscribeToRoom, submitResponse, type Room, type Question } from '@/lib/quiz';
+import { getRoomByCode, getQuestionById, subscribeToRoom, submitResponse, getResponses, type Room, type Question } from '@/lib/quiz';
+import { isQuestionAnswered, markQuestionAnswered, clearQuestionAnswered } from '@/lib/localStorage';
 
 function getSessionId(): string {
   if (typeof window === 'undefined') return '';
@@ -21,16 +22,6 @@ function getDisplayName(): string | null {
 function saveDisplayName(name: string): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem('sipnsleigh_name', name);
-}
-
-function isQuestionAnswered(questionId: string): boolean {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem(`answered_${questionId}`) === 'true';
-}
-
-function markQuestionAnswered(questionId: string): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(`answered_${questionId}`, 'true');
 }
 
 export default function JoinPanel() {
@@ -102,6 +93,28 @@ export default function JoinPanel() {
     }
   }, []);
 
+  // Function to verify and sync answered state with database
+  const verifyAnsweredState = useCallback(async (questionId: string) => {
+    try {
+      const currentSessionId = getSessionId();
+      const { data: responses, error: responsesError } = await getResponses(questionId);
+      const hasResponseInDb = !responsesError && responses && responses.some((r: any) => r.session_id === currentSessionId);
+      
+      // If localStorage says answered but database says no response, clear localStorage
+      // This handles the case where questions were reset
+      const localStorageAnswered = isQuestionAnswered(questionId);
+      if (localStorageAnswered && !hasResponseInDb) {
+        clearQuestionAnswered(questionId);
+        setAnswered(false);
+      } else {
+        // Use database state as source of truth
+        setAnswered(hasResponseInDb);
+      }
+    } catch (err) {
+      console.error('Error verifying answered state:', err);
+    }
+  }, []);
+
   // Fetch active question when active_question_id changes
   useEffect(() => {
     if (!room) return;
@@ -130,13 +143,16 @@ export default function JoinPanel() {
           throw questionError || new Error('Failed to load question');
         }
         
+        // Verify with database: check if this session has actually submitted a response
+        // This ensures localStorage stays in sync with the database after reset
+        await verifyAnsweredState(question.id);
+        
         // Check if this is still the active question
         // Use a ref or state check - but since we're in useEffect, we need to check room again
         // Actually, we should just set it since the effect will re-run if room changes
         setActiveQuestion(question);
         setTextAnswer('');
         setScaleValue(50);
-        setAnswered(isQuestionAnswered(question.id));
         setSubmitting(false);
         setError(null);
       } catch (err) {
@@ -152,7 +168,17 @@ export default function JoinPanel() {
     return () => {
       cancelled = true;
     };
-  }, [room?.active_question_id]);
+  }, [room?.active_question_id, verifyAnsweredState]);
+
+  // Re-verify answered state whenever room updates (e.g., after reset)
+  // This ensures that if responses are cleared while a question is active, we detect it
+  useEffect(() => {
+    if (!room || !activeQuestion) return;
+    
+    // Re-verify the answered state when room updates
+    // This catches cases where responses are cleared via reset
+    verifyAnsweredState(activeQuestion.id);
+  }, [room, activeQuestion, verifyAnsweredState]);
 
   const handleMcqSubmit = useCallback(async (option: string) => {
     if (!activeQuestion || submitting) return;

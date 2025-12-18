@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getRoomByCode, getQuestions, setActiveQuestion, startSession, clearResponsesForQuestion, markQuestionAsUsed, resetAllQuestions, subscribeToRoom, type Room, type Question } from '@/lib/quiz';
+import { clearAllAnsweredQuestions, clearQuestionAnswered } from '@/lib/localStorage';
 
 export default function HostPanel() {
   const [room, setRoom] = useState<Room | null>(null);
@@ -75,6 +76,13 @@ export default function HostPanel() {
       return;
     }
     try {
+      // Mark the question as used when opening it (so it can only be opened once)
+      const { error: markError } = await markQuestionAsUsed(questionId);
+      if (markError) {
+        console.error('Error marking question as used:', markError);
+        // Continue anyway - marking as used is not critical
+      }
+      
       // Clear all responses for the question being opened (so it starts fresh)
       const { error: clearError } = await clearResponsesForQuestion(questionId);
       if (clearError) {
@@ -82,12 +90,21 @@ export default function HostPanel() {
         // Continue anyway - clearing responses is not critical
       }
       
+      // Also clear localStorage for this question so join pages show it as unanswered
+      clearQuestionAnswered(questionId);
+      
       // Use room.id (UUID), NOT room.code
       const { error } = await setActiveQuestion(room.id, questionId);
       if (error) {
         throw error;
       }
       setError(null);
+      
+      // Reload questions to get updated used status
+      const { data: questionsData, error: questionsError } = await getQuestions(room.id);
+      if (!questionsError && questionsData) {
+        setQuestions((questionsData || []).sort((a, b) => a.order_index - b.order_index));
+      }
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to set active question'));
     }
@@ -96,13 +113,6 @@ export default function HostPanel() {
   const handleClearActive = async () => {
     if (!room || !room.active_question_id) return;
     try {
-      // Mark the question as used when closing it
-      const { error: markError } = await markQuestionAsUsed(room.active_question_id);
-      if (markError) {
-        console.error('Error marking question as used:', markError);
-        // Continue anyway - marking as used is not critical
-      }
-
       // Use room.id (UUID), NOT room.code
       const { error } = await setActiveQuestion(room.id, null);
       if (error) {
@@ -138,6 +148,10 @@ export default function HostPanel() {
         setError(error);
         return;
       }
+      
+      // Clear localStorage cache for all answered questions
+      // This ensures join pages will show questions as unanswered after reset
+      clearAllAnsweredQuestions();
       
       // Reload questions to get updated used status
       const { data: questionsData, error: questionsError } = await getQuestions(room.id);
