@@ -177,6 +177,7 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
       id: string;
       sessionId: string;
       yOffset: number;
+      nameBottomPosition: number;
       color: string;
     };
 
@@ -210,6 +211,7 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
             id: response.id, 
             sessionId: response.session_id,
             yOffset: 0,
+            nameBottomPosition: 0,
             color,
           };
         } catch {
@@ -222,6 +224,7 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
               id: response.id,
               sessionId: response.session_id,
               yOffset: 0,
+              nameBottomPosition: 0,
               color,
             };
           }
@@ -235,51 +238,90 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
 
     // Calculate vertical offsets for both dots and names to avoid overlap
     // Both dots and names stack vertically when close together
-    const dotSize = 16; // Size of dot (4 * 4px = 16px)
-    const dotSpacing = 12; // Spacing between stacked dots
-    const namePillHeight = 40; // Height of name pill including padding
-    const namePillSpacing = 8; // Spacing between name pill and dot
-    const namePillGap = 12; // Spacing between stacked name pills (increased to prevent overlap)
+    const dotSize = 20; // Size of dot (5 * 4px = 20px) - slightly larger
+    const dotSpacing = -8; // Negative spacing = overlap between stacked dots (dots overlap by 8px)
+    const namePillHeight = 32; // Height of name pill including padding - more compact
+    const namePillSpacing = 12; // Spacing between name pill and dot - increased for better visual separation
+    const namePillGap = 10; // Spacing between stacked name pills (kept the same)
     const namePillMinWidth = 80; // Minimum estimated width for name pills
     const dotProximityThreshold = 5; // Percentage points - if dots are this close, stack them
     
-    // Calculate offsets: stack names at top, then dots below, with first dot on the line
-    // Layout: name 2 (top), name 1, dot 2, dot 1 (on line)
-    parsedResponses.forEach((response, index) => {
-      if (index === 0) {
-        response.yOffset = 0; // First response: dot on the line
-      } else {
-        // Find all previous responses with dots close to this one
-        const closeDots = parsedResponses
-          .slice(0, index)
-          .filter((r) => Math.abs(r.value - response.value) <= dotProximityThreshold);
-        
-        if (closeDots.length > 0) {
-          // Stack layout: names at top, then dots below, first dot on line
-          // Order from top: name 2, name 1, dot 2, dot 1 (on line)
-          // Dots stack from the line upward: dot 1 at 0, dot 2 above it
-          const dotsAbove = closeDots.length; // Number of dots above this one
-          response.yOffset = dotsAbove * (dotSize + dotSpacing);
-        } else {
-          response.yOffset = 0; // No close dots, dot on the line
+    // Group responses by proximity - responses with similar values form a stack
+    const stacks: ScaleResponse[][] = [];
+    parsedResponses.forEach((response) => {
+      // Find if this response belongs to an existing stack
+      let addedToStack = false;
+      for (const stack of stacks) {
+        // Check if any response in this stack is close to the current response
+        if (stack.some(r => Math.abs(r.value - response.value) <= dotProximityThreshold)) {
+          stack.push(response);
+          addedToStack = true;
+          break;
         }
       }
+      // If not added to any stack, create a new stack
+      if (!addedToStack) {
+        stacks.push([response]);
+      }
+    });
+    
+    // Now assign positions within each stack
+    // Layout: name 2 (top), name 1, dot 2, dot 1 (on line)
+    // Dots: lowest value = dot 1 (on line at 0), next = dot 2 (above), etc.
+    // Names: highest value = name 2 (top), next = name 1 (below), etc.
+    stacks.forEach((stack) => {
+      // Sort stack by value (ascending) for dot positioning
+      const sortedByValue = [...stack].sort((a, b) => a.value - b.value);
+      const stackSize = sortedByValue.length;
+      
+      sortedByValue.forEach((response, dotIndex) => {
+        // Dot position: first dot (lowest value) at 0 (on line), next dots stack upward
+        // Each dot is dotSize tall, with dotSpacing between them
+        // Dot 0: bottom at 0 (on line)
+        // Dot 1: bottom at dotSize + dotSpacing (above dot 0)
+        // Dot 2: bottom at 2*(dotSize + dotSpacing) (above dot 1)
+        response.yOffset = dotIndex === 0 ? 0 : dotIndex * (dotSize + dotSpacing);
+        
+        // Name position: highest value gets top name position, lowest gets bottom name position
+        // Reverse the order for names: highest value = top name (index 0), lowest = bottom name
+        const nameIndex = stackSize - 1 - dotIndex; // 0 = top name, increases downward
+        
+        // Calculate name position relative to the container
+        // The container is positioned at the dot's yOffset from the line
+        // Each container has one dot at bottom: 0 (relative to container)
+        // We want all names to stack above ALL dots in the entire stack
+        // 
+        // Layout from bottom to top:
+        // - Dot 1 (lowest value, at yOffset=0, dot at container bottom: 0)
+        // - Dot 2 (next value, at yOffset=34, dot at container bottom: 0)
+        // - ... more dots ...
+        // - Spacing between dots and names
+        // - Name 2 (highest value, top name)
+        // - Name 1 (lower value, below name 2)
+        //
+        // For name positioning: we need to position names above the highest dot in the stack
+        // The highest dot is at yOffset = (stackSize-1) * (dotSize + dotSpacing)
+        // But since each container's dot is at bottom: 0 relative to that container,
+        // we need to position names relative to the container's position
+        // 
+        // Name should be: above highest dot + spacing + names above + this name height
+        const highestDotYOffset = (stackSize - 1) * (dotSize + dotSpacing);
+        const namesAbove = nameIndex; // How many names are above this one (0 = top name)
+        const namesAboveHeight = namesAbove * (namePillHeight + namePillGap);
+        
+        // Position name: above highest dot + spacing + names above + this name's height
+        // Since this container is at response.yOffset, and highest dot is at highestDotYOffset,
+        // we need: (highestDotYOffset - response.yOffset) + dotSize + spacing + namesAbove + nameHeight
+        const offsetFromHighestDot = highestDotYOffset - response.yOffset;
+        response.nameBottomPosition = offsetFromHighestDot + dotSize + namePillSpacing + namesAboveHeight + namePillHeight;
+      });
     });
 
     // Calculate max height needed for all dots and names (above the line)
-    // Need space for: all stacked dots + spacing + all stacked names
-    // Group responses to find max stack size
-    const maxStackSize = Math.max(
-      ...Array.from(new Set(parsedResponses.map(r => {
-        const stackItems = parsedResponses.filter(s => 
-          Math.abs(s.value - r.value) <= dotProximityThreshold
-        );
-        return stackItems.length;
-      }))),
-      1
-    );
+    // Find the largest stack size
+    const maxStackSize = Math.max(...stacks.map(s => s.length), 1);
     
-    const allDotsHeight = (maxStackSize - 1) * (dotSize + dotSpacing) + dotSize;
+    const allDotsHeight = maxStackSize * dotSize + (maxStackSize - 1) * dotSpacing;
     const allNamesHeight = maxStackSize * namePillHeight + (maxStackSize - 1) * namePillGap;
     const maxHeight = allDotsHeight + namePillSpacing + allNamesHeight + 30; // Extra space for padding
 
@@ -305,57 +347,22 @@ export default function LiveResultsChart({ question }: LiveResultsChartProps) {
               >
                 {/* Name pill - all names stack together at top, above all dots */}
                 <div
-                  className="absolute left-1/2 transform -translate-x-1/2 whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium shadow-md z-10 border-2"
+                  className="absolute left-1/2 transform -translate-x-1/2 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm z-10 border"
                   style={{
-                    borderColor: 'var(--untitled-ui-gray300)',
+                    borderColor: 'var(--untitled-ui-gray200)',
                     backgroundColor: response.color,
-                    // Position name: all names stack at top, then dots below
-                    // Order: name 2 (top), name 1, dot 2, dot 1 (on line)
-                    bottom: (() => {
-                      // Find all items in this stack (responses with close values)
-                      const stackItems = parsedResponses.filter(r => 
-                        Math.abs(r.value - response.value) <= dotProximityThreshold
-                      );
-                      // Sort by value (ascending) - first item has lowest value
-                      const sortedStack = [...stackItems].sort((a, b) => a.value - b.value);
-                      const thisIndex = sortedStack.findIndex(r => r.id === response.id);
-                      const totalInStack = sortedStack.length;
-                      
-                      // Calculate all dots height (all dots stacked)
-                      const allDotsHeight = (totalInStack - 1) * (dotSize + dotSpacing) + dotSize;
-                      
-                      // Names stack from top: highest value = top name (name 2), lowest value = bottom name (name 1)
-                      // In sorted stack: index 0 = lowest value (name 1), index N-1 = highest value (name 2 = top)
-                      // So name position from top: totalInStack - 1 - thisIndex
-                      // 0 = top name, increases as we go down
-                      const namePositionFromTop = totalInStack - 1 - thisIndex;
-                      
-                      // Position names from top to bottom with proper spacing
-                      // namePositionFromTop: 0 = top name, increases as we go down
-                      // Using bottom positioning: position the bottom edge of each name pill
-                      // Top name (position 0): highest position
-                      // Each name below: offset by (height + gap) from the one above
-                      
-                      // Calculate total height of all names above this one (including gaps)
-                      const namesAbove = namePositionFromTop;
-                      const totalHeightAbove = namesAbove * (namePillHeight + namePillGap);
-                      
-                      // Position: all dots + spacing + all names above + this name's height
-                      // This positions the bottom edge, so the name extends upward
-                      const nameBottomPosition = allDotsHeight + namePillSpacing + totalHeightAbove + namePillHeight;
-                      return `${nameBottomPosition}px`;
-                    })()
+                    bottom: `${response.nameBottomPosition || 0}px`
                   }}
                 >
                   <span className="text-black font-semibold">{response.name}</span>
                 </div>
-                {/* Dot - positioned at yOffset (first dot at 0 = on the line) */}
+                {/* Dot - positioned at bottom of container (container is already positioned at yOffset) */}
                 <div 
-                  className="absolute left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full border-2 shadow-md"
+                  className="absolute left-1/2 transform -translate-x-1/2 w-5 h-5 rounded-full border-2 shadow-sm"
                   style={{ 
                     borderColor: 'var(--untitled-ui-white)',
                     backgroundColor: response.color,
-                    bottom: `${response.yOffset}px` // yOffset=0 means on the line
+                    bottom: '0px' // Container is already positioned at yOffset, so dot is at bottom: 0
                   }}
                 ></div>
               </div>
