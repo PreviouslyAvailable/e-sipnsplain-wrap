@@ -103,7 +103,8 @@ CREATE POLICY "Allow public insert on questions"
 
 CREATE POLICY "Allow public update on questions"
   ON questions FOR UPDATE
-  USING (true);
+  USING (true)
+  WITH CHECK (true);
 
 CREATE POLICY "Allow public delete on responses"
   ON responses FOR DELETE

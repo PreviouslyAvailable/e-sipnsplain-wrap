@@ -195,10 +195,76 @@ export async function clearResponsesForQuestion(questionId: string) {
 }
 
 export async function markQuestionAsUsed(questionId: string) {
-  return supabase
+  // First verify the question exists
+  const { data: existingQuestion, error: fetchError } = await supabase
+    .from("questions")
+    .select("id, used")
+    .eq("id", questionId)
+    .single();
+  
+  if (fetchError || !existingQuestion) {
+    console.error('Question not found before update:', { questionId, fetchError });
+    return { 
+      data: null, 
+      error: fetchError || new Error('Question not found') 
+    };
+  }
+  
+  console.log('Attempting to update question:', { questionId, currentUsed: existingQuestion.used });
+  
+  // Now update it with select to get the updated row back
+  const result = await supabase
     .from("questions")
     .update({ used: true })
-    .eq("id", questionId);
+    .eq("id", questionId)
+    .select("id, used");
+  
+  // Log detailed error information for debugging
+  if (result.error) {
+    console.error('Supabase update error:', {
+      message: result.error.message,
+      details: result.error.details,
+      hint: result.error.hint,
+      code: result.error.code,
+      questionId,
+    });
+    return result;
+  }
+  
+  // Check if update returned data (means it succeeded)
+  if (!result.data || result.data.length === 0) {
+    console.error('Update returned no rows - RLS might be blocking or question not found:', { questionId });
+    // Try to verify by fetching
+    const { data: verifyQuestion } = await supabase
+      .from("questions")
+      .select("id, used")
+      .eq("id", questionId)
+      .single();
+    
+    if (verifyQuestion && verifyQuestion.used === true) {
+      // Update actually worked, just didn't return data
+      console.log('Update succeeded (verified by fetch):', { questionId });
+      return { data: [verifyQuestion], error: null };
+    }
+    
+    return { 
+      data: null, 
+      error: new Error('Update returned no rows - check RLS policies') 
+    };
+  }
+  
+  const updatedQuestion = result.data[0];
+  console.log('Update returned data:', { questionId, returnedUsed: updatedQuestion.used, resultData: result.data });
+  
+  if (updatedQuestion.used !== true) {
+    console.error('Update verification failed - used flag not set:', { questionId, used: updatedQuestion.used, fullData: updatedQuestion });
+    return { 
+      data: null, 
+      error: new Error(`Update did not set used flag to true. Got: ${updatedQuestion.used}`) 
+    };
+  }
+  
+  return { data: [updatedQuestion], error: null };
 }
 
 export async function resetAllQuestions(roomId: string) {

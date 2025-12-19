@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getRoomByCode, getQuestionById, subscribeToRoom, submitResponse, getResponses, type Room, type Question } from '@/lib/quiz';
 import { isQuestionAnswered, markQuestionAnswered, clearQuestionAnswered } from '@/lib/localStorage';
+import FloatingEmojis from './FloatingEmojis';
 
 function getSessionId(): string {
   if (typeof window === 'undefined') return '';
@@ -349,15 +350,11 @@ export default function JoinPanel() {
           )}
         </div>
       ) : !room.active_question_id ? (
-        <div className="text-center py-12">
-          <p className="text-xl md:text-2xl font-semibold mb-3" style={{ color: 'var(--black)' }}>
+        <div className="text-center py-12 relative">
+          <FloatingEmojis />
+          <p className="text-xl md:text-2xl font-semibold mb-3 relative z-10" style={{ color: 'var(--black)' }}>
             Waiting for the next reflection...
           </p>
-          <div className="flex justify-center mt-6">
-            <div className="animate-pulse">
-              <div className="w-16 h-16 rounded-full" style={{ backgroundColor: 'var(--untitled-ui-gray300)' }}></div>
-            </div>
-          </div>
         </div>
       ) : !activeQuestion ? (
         <div className="text-center" style={{ color: 'var(--untitled-ui-gray600)' }}>Loading reflection...</div>
